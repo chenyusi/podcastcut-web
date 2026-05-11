@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Podcastcut · 屏 3 录后复盘</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap');
+
+:root {
+  --bg: #ECEEE8;
+  --bg-warm: #E2E5DD;
+  --card: #F4F5F0;
+  --card-2: #EEF0EA;
+  --border: #CFD3C8;
+  --border-soft: #DCDFD4;
+  --black: #1A1A1A;
+  --dark: #2D2D2D;
+  --mid: #4A4A4A;
+  --muted: #757870;
+  --light: #A4A8A0;
+  --cream: #ECEEE8;
+  --sage: #B8C0A0;
+  --sage-deep: #8B9275;
+  --accent: #5C6557;
+  --vibe: #D4A95B;
+  --shadow-sm: 0 1px 2px rgba(30, 35, 25, .04);
+  --shadow-md: 0 4px 16px rgba(30, 35, 25, .06);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--black);
+  -webkit-font-smoothing: antialiased;
+  font-size: 17px; line-height: 1.65;
+  min-height: 100vh;
+}
+.serif { font-family: "Noto Serif SC", serif; }
+.mono { font-family: "SF Mono", Consolas, monospace; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============ Top sticky bar (shared with 屏 2) ============ */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 40px; gap: 32px;
+  background: rgba(236, 238, 232, .9);
+  border-bottom: 1px solid var(--border-soft);
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(10px);
+}
+.topbar-left {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.tb-logo {
+  font-family: "Noto Serif SC", serif; font-weight: 900;
+  font-size: 19px; color: var(--black); letter-spacing: -.5px;
+}
+.tb-logo::after {
+  content: ''; display: inline-block; width: 5px; height: 5px;
+  background: var(--sage-deep); border-radius: 50%;
+  margin-left: 4px; transform: translateY(-3px);
+}
+.tb-ver {
+  font-family: "SF Mono", monospace; font-size: 10px;
+  color: var(--light); letter-spacing: 1.2px;
+  padding: 3px 7px; border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.progress {
+  display: flex; align-items: center; gap: 0;
+  flex: 1; justify-content: center;
+  overflow-x: auto;
+}
+.prog-step {
+  display: flex; align-items: center; gap: 9px;
+  flex-shrink: 0; position: relative;
+  font-family: "SF Mono", monospace;
+  font-size: 11px; letter-spacing: 1.5px;
+  color: var(--light); transition: color .15s;
+}
+.prog-step + .prog-step::before {
+  content: ''; display: inline-block;
+  width: 26px; height: 1px;
+  background: var(--border);
+  margin: 0 16px;
+}
+.prog-step.done + .prog-step::before { background: var(--sage-deep); }
+.prog-step .pdot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border);
+}
+.prog-step.done .pdot { background: var(--sage-deep); }
+.prog-step.active .pdot {
+  background: var(--sage-deep);
+  box-shadow: 0 0 0 4px rgba(139, 146, 117, .18);
+}
+.prog-step .plabel {
+  font-family: "Noto Serif SC", serif;
+  font-size: 12.5px; font-weight: 500;
+  letter-spacing: 0;
+}
+.prog-step.active { color: var(--black); }
+.prog-step.active .plabel { font-weight: 700; }
+.prog-step.done { color: var(--mid); }
+
+.vibe-chip {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 7px 14px 7px 10px;
+  background: var(--card-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  cursor: default; flex-shrink: 0;
+}
+.vibe-chip .vdot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--vibe);
+  box-shadow: 0 0 0 2px rgba(212, 169, 91, .25);
+}
+.vibe-chip .vlbl {
+  font-family: "SF Mono", monospace; font-size: 9.5px;
+  color: var(--light); letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.vibe-chip .vname {
+  font-family: "Noto Serif SC", serif; font-weight: 700;
+  font-size: 14px; color: var(--black); letter-spacing: 1.5px;
+}
+
+/* ============ Page ============ */
+.page {
+  max-width: 820px; margin: 0 auto;
+  padding: 64px 40px 120px;
+}
+
+/* Episode strip (carries from 屏 2) */
+.ep-strip {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px;
+  background: var(--card-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  margin-bottom: 40px;
+  animation: rise .5s ease both;
+}
+.ep-strip .ep-icon {
+  width: 36px; height: 36px; flex-shrink: 0;
+  background: var(--bg-warm);
+  border: 1px solid var(--border-soft);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: "SF Mono", monospace; font-size: 9.5px;
+  font-weight: 600; color: var(--mid); letter-spacing: .5px;
+}
+.ep-strip .ep-name {
+  font-family: "Noto Serif SC", serif; font-weight: 600;
+  font-size: 15px; color: var(--black);
+}
+.ep-strip .ep-meta {
+  font-family: "SF Mono", monospace; font-size: 11px;
+  color: var(--muted); letter-spacing: 1px;
+  margin-left: auto;
+}
+
+.hero {
+  margin-bottom: 56px;
+  animation: rise .6s ease .05s both;
+}
+.eyebrow {
+  font-family: "SF Mono", monospace; font-size: 11.5px;
+  letter-spacing: 2.5px; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 20px;
+}
+.hero-title {
+  font-family: "Noto Serif SC", serif;
+  font-weight: 700; font-size: 56px;
+  line-height: 1.1; color: var(--black);
+  letter-spacing: -1px; margin-bottom: 16px;
+}
+.hero-sub {
+  font-family: "Noto Serif SC", serif;
+  font-style: italic; font-size: 17px;
+  color: var(--muted); line-height: 1.75;
+  max-width: 620px;
+}
+
+/* Inline quote — sets the "趁热写" tone */
+.quote-card {
+  position: relative;
+  background: var(--card);
+  padding: 22px 28px 22px 32px;
+  border-radius: 6px;
+  margin-bottom: 56px;
+  animation: rise .6s ease .12s both;
+}
+.quote-card::before {
+  content: ''; position: absolute;
+  left: 0; top: 18px; bottom: 18px;
+  width: 3px; background: var(--vibe);
+  border-radius: 2px;
+}
+.quote-card .qe {
+  font-family: "SF Mono", monospace; font-size: 10.5px;
+  letter-spacing: 2px; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.quote-card .qt {
+  font-family: "Noto Serif SC", serif; font-style: italic;
+  font-weight: 500; font-size: 15.5px;
+  color: var(--mid); line-height: 1.75;
+}
+
+/* ============ Form sections ============ */
+.field {
+  margin-bottom: 44px;
+  animation: rise .55s ease both;
+}
+.field:nth-of-type(1) { animation-delay: .15s; }
+.field:nth-of-type(2) { animation-delay: .2s; }
+.field:nth-of-type(3) { animation-delay: .25s; }
+.field:nth-of-type(4) { animation-delay: .3s; }
+.field:nth-of-type(5) { animation-delay: .35s; }
+.field:nth-of-type(6) { animation-delay: .4s; }
+.field:nth-of-type(7) { animation-delay: .45s; }
+
+.field-num {
+  font-family: "SF Mono", monospace; font-size: 11px;
+  letter-spacing: 2.5px; color: var(--light);
+  text-transform: uppercase; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 10px;
+}
+.field-num .badge {
+  padding: 2px 7px; border: 1px solid var(--border);
+  border-radius: 3px; font-size: 9px; letter-spacing: 1px;
+  color: var(--muted); text-transform: uppercase;
+}
+.field-num .badge.optional {
+  border-color: var(--border-soft);
+  color: var(--light);
+}
+.field-num .badge.override {
+  border-color: var(--vibe);
+  color: var(--accent); background: rgba(212, 169, 91, .08);
+}
+.field-label {
+  font-family: "Noto Serif SC", serif;
+  font-weight: 700; font-size: 24px;
+  color: var(--black); margin-bottom: 6px;
+  letter-spacing: -.3px;
+}
+.field-hint {
+  font-size: 14.5px; color: var(--muted);
+  line-height: 1.7; margin-bottom: 16px;
+}
+.field-hint b { color: var(--mid); font-weight: 600; }
+
+/* Pill rows */
+.pills {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.pill {
+  padding: 12px 22px; background: var(--card);
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font: inherit; font-size: 14px; color: var(--mid);
+  cursor: pointer; transition: all .15s; user-select: none;
+  font-family: "Noto Serif SC", serif; font-weight: 500;
+}
+.pill:hover { border-color: var(--dark); color: var(--dark); }
+.pill.on {
+  background: var(--black); color: var(--cream);
+  border-color: var(--black);
+}
+.pill.on .pill-side { color: rgba(243, 240, 234, .55); }
+.pill .pill-side {
+  font-family: "SF Mono", monospace; font-size: 10px;
+  color: var(--light); margin-left: 8px; letter-spacing: 1px;
+}
+
+/* Multi-checkbox — paper-card list */
+.checks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.check {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.check:hover {
+  border-color: var(--mid); background: var(--card-2);
+}
+.check.on {
+  border-color: var(--sage-deep);
+  background: var(--card-2);
+}
+.check .ck-box {
+  width: 18px; height: 18px; flex-shrink: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 4px; background: white;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 2px;
+  transition: all .15s;
+}
+.check.on .ck-box {
+  background: var(--sage-deep);
+  border-color: var(--sage-deep);
+}
+.check.on .ck-box::after {
+  content: '✓'; color: white;
+  font-size: 11px; font-weight: 700;
+}
+.check .ck-text {
+  font-family: "Noto Serif SC", serif;
+  font-size: 14.5px; font-weight: 500;
+  color: var(--dark); line-height: 1.45;
+}
+.check .ck-side {
+  font-family: "SF Mono", monospace; font-size: 10.5px;
+  color: var(--light); letter-spacing: .5px;
+  display: block; margin-top: 3px; font-weight: 400;
+}
+
+/* Textareas */
+.in-area {
+  width: 100%; padding: 16px 20px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font: inherit; font-size: 16px; color: var(--black);
+  min-height: 96px; line-height: 1.7; resize: vertical;
+  transition: border-color .15s;
+}
+.in-area:focus { outline: none; border-color: var(--black); }
+.in-area::placeholder { color: #C0C0B8; }
+
+/* Privacy field — extra emphasis */
+.field.field-privacy .field-label::after {
+  content: '·';
+  margin-left: 10px;
+  font-size: 18px; color: var(--vibe);
+  vertical-align: middle;
+}
+.in-area.privacy {
+  background: var(--card-2);
+  border-color: var(--border-soft);
+}
+.in-area.privacy:focus { border-color: var(--accent); }
+
+/* Slider for duration */
+.sl-wrap {
+  display: flex; align-items: center; gap: 24px;
+  padding: 24px 28px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+}
+.sl-val {
+  font-family: "Noto Serif SC", serif;
+  font-weight: 700; font-size: 44px;
+  color: var(--black); letter-spacing: -1px;
+  line-height: 1; min-width: 110px;
+}
+.sl-val .unit {
+  font-family: "Noto Serif SC", serif;
+  font-size: 16px; color: var(--muted);
+  font-weight: 500; margin-left: 4px; letter-spacing: 0;
+}
+.sl-mid {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sl-bounds {
+  display: flex; justify-content: space-between;
+  font-family: "SF Mono", monospace; font-size: 10.5px;
+  color: var(--light); letter-spacing: 1px;
+}
+.sl {
+  -webkit-appearance: none; height: 4px;
+  background: var(--border); border-radius: 2px;
+  width: 100%;
+}
+.sl::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 22px; height: 22px;
+  border-radius: 50%; background: var(--black); cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+.sl-default {
+  font-family: "Noto Serif SC", serif; font-style: italic;
+  font-size: 13px; color: var(--muted);
+  white-space: nowrap;
+}
+.sl-default .v { color: var(--mid); font-style: normal; }
+.sl-default.changed::before {
+  content: '已覆盖 ·';
+  font-family: "SF Mono", monospace; font-style: normal;
+  font-size: 9.5px; color: var(--accent);
+  letter-spacing: 1.5px; margin-right: 6px;
+}
+
+/* CTA */
+.cta-row {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 64px; padding-top: 36px;
+  border-top: 1px solid var(--border-soft);
+  animation: rise .6s ease .55s both;
+  flex-wrap: wrap;
+}
+.btn-primary {
+  padding: 16px 36px; background: var(--black);
+  color: var(--cream); border: none; border-radius: 10px;
+  font: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+  letter-spacing: .3px;
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.btn-primary:hover {
+  background: var(--dark); transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.15);
+}
+.btn-ghost {
+  padding: 14px 24px; background: none;
+  color: var(--muted); border: 1.5px solid var(--border);
+  border-radius: 10px; font: inherit; font-size: 14px;
+  cursor: pointer; transition: all .15s;
+}
+.btn-ghost:hover { color: var(--dark); border-color: var(--dark); }
+.cta-aside {
+  margin-left: auto;
+  font-family: "Noto Serif SC", serif; font-style: italic;
+  font-size: 13.5px; color: var(--muted);
+  max-width: 320px; line-height: 1.6;
+  text-align: right;
+}
+
+/* Footer */
+.footer {
+  text-align: center; padding: 40px 0 56px;
+  font-family: "SF Mono", monospace; font-size: 10.5px;
+  color: var(--light); letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+
+/* Responsive: stack checkbox grid on small screens */
+@media (max-width: 640px) {
+  .checks { grid-template-columns: 1fr; }
+  .sl-wrap { flex-wrap: wrap; }
+  .cta-aside { margin-left: 0; text-align: left; max-width: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ Top sticky bar ============ -->
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="tb-logo">辟客</span>
+    <span class="tb-ver">屏 3 · v0.1</span>
+  </div>
+
+  <nav class="progress">
+    <div class="prog-step done">
+      <span class="pdot"></span>
+      <span class="plabel">上传</span>
+    </div>
+    <div class="prog-step active">
+      <span class="pdot"></span>
+      <span class="plabel">复盘</span>
+    </div>
+    <div class="prog-step">
+      <span class="pdot"></span>
+      <span class="plabel">说话人</span>
+    </div>
+    <div class="prog-step">
+      <span class="pdot"></span>
+      <span class="plabel">处理</span>
+    </div>
+    <div class="prog-step">
+      <span class="pdot"></span>
+      <span class="plabel">粗剪</span>
+    </div>
+    <div class="prog-step">
+      <span class="pdot"></span>
+      <span class="plabel">精剪</span>
+    </div>
+    <div class="prog-step">
+      <span class="pdot"></span>
+      <span class="plabel">完成</span>
+    </div>
+  </nav>
+
+  <div class="vibe-chip">
+    <span class="vdot"></span>
+    <span class="vlbl">本期</span>
+    <span class="vname">明心</span>
+  </div>
+</header>
+
+<!-- ============ Page ============ -->
+<main class="page">
+
+  <!-- Episode carry-over from 屏 2 -->
+  <div class="ep-strip">
+    <div class="ep-icon">WAV</div>
+    <div>
+      <div class="ep-name">EP21 数字亲密期</div>
+    </div>
+    <div class="ep-meta">1 : 24 : 06 · 412 MB · 3 人 · 7 个 glossary 词</div>
+  </div>
+
+  <section class="hero">
+    <div class="eyebrow">Step 02 · 录后复盘</div>
+    <h1 class="hero-title">趁记忆还热<br>给 AI 一些提示</h1>
+    <p class="hero-sub">这是给剪辑判断的核心输入。你写的越具体，AI 越知道哪段该保护、哪段可以放心删。<br>留空也行，但每一栏都填，会让粗剪结果接近你的直觉。</p>
+  </section>
+
+  <div class="quote-card">
+    <div class="qe">为什么要在剪之前先复盘</div>
+    <div class="qt">"AI 听不出气氛 — 同一句话，你笑了 2 秒，可能是节目的灵魂；也可能是对话里掉下去的尴尬。复盘是你告诉 AI 哪种是哪种的唯一时刻。"</div>
+  </div>
+
+  <!-- 01 整体录制感觉 -->
+  <div class="field">
+    <div class="field-num"><span>01 · 录制感觉</span></div>
+    <div class="field-label">这一期录得怎么样？</div>
+    <div class="field-hint">影响口癖清理力度 — <b>磕磕绊绊</b> 会让 AI 更激进地删停顿和重复。</div>
+    <div class="pills" data-group="smoothness">
+      <button class="pill" onclick="togglePill(this)">顺畅 <span class="pill-side">SMOOTH</span></button>
+      <button class="pill on" onclick="togglePill(this)">还行 <span class="pill-side">NORMAL</span></button>
+      <button class="pill" onclick="togglePill(this)">磕磕绊绊 <span class="pill-side">ROUGH</span></button>
+    </div>
+  </div>
+
+  <!-- 02 录制中的意外 -->
+  <div class="field">
+    <div class="field-num"><span>02 · 录制中的意外</span><span class="badge">多选</span></div>
+    <div class="field-label">有哪些「不算正片」的部分？</div>
+    <div class="field-hint">勾上的部分 AI 会优先识别 + 默认删除。你在粗剪审核时还能恢复。</div>
+    <div class="checks">
+      <div class="check on" onclick="toggleCheck(this)">
+        <div class="ck-box"></div>
+        <div class="ck-text">录前的暖场闲聊<span class="ck-side">PRE-RECORDING CHAT</span></div>
+      </div>
+      <div class="check" onclick="toggleCheck(this)">
+        <div class="ck-box"></div>
+        <div class="ck-text">制作流程的讨论<span class="ck-side">PRODUCTION TALK</span></div>
+      </div>
+      <div class="check" onclick="toggleCheck(this)">
+        <div class="ck-box"></div>
+        <div class="ck-text">设备问题处理<span class="ck-side">TECH ISSUES</span></div>
+      </div>
+      <div class="check on" onclick="toggleCheck(this)">
+        <div class="ck-box"></div>
+        <div class="ck-text">中途有人离开<span class="ck-side">SOMEONE LEFT</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 隐私 / 合规 -->
+  <div class="field field-privacy">
+    <div class="field-num"><span>03 · 隐私 / 合规</span></div>
+    <div class="field-label">本期有不便公开的内容吗？</div>
+    <div class="field-hint">个人信息、敏感话题、未公开的项目细节。<b>AI 会标红并默认建议删除</b>，你最后审核时再确认。</div>
+    <textarea class="in-area privacy" rows="3" placeholder="例：嘉宾在 12-15 分钟提到她目前公司的离职细节，先不公开；以及 38 分左右提到的那个还没正式上线的产品名 "Aurora" 暂时不能出现。">嘉宾 12-15 分提到目前公司的离职细节，先不公开。</textarea>
+  </div>
+
+  <!-- 04 印象最深 -->
+  <div class="field">
+    <div class="field-num"><span>04 · 想保护的</span></div>
+    <div class="field-label">印象最深的内容</div>
+    <div class="field-hint">哪段对话让你想起来就笑、就感动、就觉得"这就是为什么要做这期"。<b>AI 会标记为保护段落</b>，剪辑时优先保留。</div>
+    <textarea class="in-area" rows="3" placeholder="例：35 分前后嘉宾聊到她奶奶的那段；50 分附近三个人因为一个 typo 笑了快一分钟那段。">35 分前后嘉宾聊到她奶奶的那一段。
+50 分附近三个人因为一个 typo 笑了快一分钟那段。</textarea>
+  </div>
+
+  <!-- 05 可以删 -->
+  <div class="field">
+    <div class="field-num"><span>05 · 可以删的</span></div>
+    <div class="field-label">哪段可以放心删？</div>
+    <div class="field-hint">你录的时候已经知道这段不会留的部分。给 AI 一个明确的"先删"清单 — <b>会优先按时间码删除</b>，不需要再判断内容。</div>
+    <textarea class="in-area" rows="3" placeholder="例：5 分钟前的暖场；25-28 分讨论选题没结论的那段；嘉宾接电话的 1 分钟。">5 分钟前的暖场。
+25-28 分关于下一期选题的发散讨论。</textarea>
+  </div>
+
+  <!-- 06 目标时长（覆盖默认）-->
+  <div class="field">
+    <div class="field-num">
+      <span>06 · 本期目标时长</span>
+      <span class="badge override" id="durBadge" style="display:none;">已覆盖档案默认</span>
+    </div>
+    <div class="field-label">这一期最后想剪到多长？</div>
+    <div class="field-hint">默认沿用档案里的 50 分钟。可以为本期单独覆盖 — 比如这期内容更密就压短，更松散就放长。</div>
+    <div class="sl-wrap">
+      <div class="sl-val"><span id="durVal">50</span><span class="unit">min</span></div>
+      <div class="sl-mid">
+        <input type="range" class="sl" id="durSlider" min="20" max="90" value="50" oninput="updateDur(this.value)">
+        <div class="sl-bounds">
+          <span>20 MIN</span>
+          <span>90 MIN</span>
+        </div>
+      </div>
+      <div class="sl-default" id="durDefault">档案默认 <span class="v">50 min</span></div>
+    </div>
+  </div>
+
+  <!-- 07 删减力度（覆盖默认）-->
+  <div class="field">
+    <div class="field-num">
+      <span>07 · 本期删减力度</span>
+      <span class="badge override" id="aggBadge" style="display:none;">已覆盖档案默认</span>
+    </div>
+    <div class="field-label">想剪得多紧？</div>
+    <div class="field-hint"><b>保守</b> = 只删废话 · <b>适中</b> = 删重复和低密度（档案默认）· <b>激进</b> = 只留精华</div>
+    <div class="pills" data-group="aggressiveness" data-default="moderate">
+      <button class="pill" onclick="togglePill(this); checkAggOverride();">保守 <span class="pill-side">CONSERVATIVE</span></button>
+      <button class="pill on" onclick="togglePill(this); checkAggOverride();" data-default="true">适中 <span class="pill-side">MODERATE · 档案默认</span></button>
+      <button class="pill" onclick="togglePill(this); checkAggOverride();">激进 <span class="pill-side">AGGRESSIVE</span></button>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-row">
+    <button class="btn-primary" onclick="goToProcessing()">
+      <span>提交并开始处理</span>
+      <span>→</span>
+    </button>
+    <button class="btn-ghost" onclick="window.location.href='prototype_屏2_上传.html'">回上一步</button>
+    <span class="cta-aside">下一步：AI 会先转录 + 识别说话人，<br>大约 3-5 分钟，期间你可以离开。</span>
+  </div>
+
+</main>
+
+<div class="footer">PODCASTCUT · V0.1 · MADE FOR 辟客</div>
+
+<script>
+function togglePill(el) {
+  const group = el.parentElement;
+  group.querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function toggleCheck(el) {
+  el.classList.toggle('on');
+}
+
+const PROFILE_DEFAULT_DUR = 50;
+function updateDur(v) {
+  document.getElementById('durVal').textContent = v;
+  const def = document.getElementById('durDefault');
+  const badge = document.getElementById('durBadge');
+  const changed = parseInt(v, 10) !== PROFILE_DEFAULT_DUR;
+  def.classList.toggle('changed', changed);
+  badge.style.display = changed ? 'inline-block' : 'none';
+}
+
+function checkAggOverride() {
+  const grp = document.querySelector('[data-group="aggressiveness"]');
+  const active = grp.querySelector('.pill.on');
+  const isDefault = active && active.dataset.default === 'true';
+  document.getElementById('aggBadge').style.display = isDefault ? 'none' : 'inline-block';
+}
+
+function goToProcessing() {
+  alert('→ 屏 4 说话人确认 / 屏 5 处理动画\n（这两屏接下来做）');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Podcastcut</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap');
+
+:root {
+  --bg: #F3F0EA;
+  --card: #FAFAF7;
+  --border: #DDD8D0;
+  --panel: #1A1A1A;
+  --panel2: #252525;
+  --black: #1A1A1A;
+  --dark: #2D2D2D;
+  --mid: #4A4A4A;
+  --muted: #7A7A7A;
+  --light: #A8A8A8;
+  --cream: #F3F0EA;
+  --green: #3D7A3D;
+  --green-bg: #EEF3EE;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", sans-serif;
+  background: var(--bg); color: var(--black);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden; height: 100vh;
+}
+.serif { font-family: "Noto Serif SC", serif; }
+.mono { font-family: "SF Mono", Consolas, monospace; }
+
+/* ===== SCREENS ===== */
+.screen { position:absolute; inset:0; opacity:0; pointer-events:none; transition: opacity .5s ease; }
+.screen.active { opacity:1; pointer-events:auto; }
+
+/* ===== SPLIT LAYOUT ===== */
+.split { display:flex; height:100vh; }
+.split-left {
+  width: 420px; flex-shrink:0;
+  background: var(--panel); color: #E8E6E0;
+  display: flex; flex-direction: column;
+  padding: 48px 40px 40px;
+  position: relative; overflow: hidden;
+}
+.split-right {
+  flex:1; overflow-y:auto;
+  padding: 48px 56px 120px;
+}
+
+/* Left panel */
+.lp-eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: 3px;
+  text-transform: uppercase; color: #666; margin-bottom: 20px;
+  font-family: "SF Mono", monospace;
+}
+.lp-title {
+  font-family: "Noto Serif SC", serif;
+  font-size: 38px; font-weight: 900; line-height: 1.25;
+  color: #F3F0EA; margin-bottom: 14px;
+}
+.lp-sub {
+  font-size: 16px; line-height: 1.8; color: #888;
+  margin-bottom: 36px;
+}
+
+/* File card on dark bg */
+.file-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px; background: var(--panel2);
+  border: 1px solid #333; border-radius: 10px; margin-bottom: 32px;
+}
+.file-card .fc-icon { font-size: 28px; }
+.file-card .fc-name { font-size: 14px; font-weight: 600; color: #DDD; }
+.file-card .fc-meta { font-size: 12px; color: #666; font-family: "SF Mono", monospace; margin-top: 2px; }
+.file-card .fc-status {
+  margin-left: auto; font-size: 11px; color: var(--green);
+  font-weight: 600; background: rgba(61,122,61,.12);
+  padding: 4px 10px; border-radius: 6px;
+}
+
+/* Step progress on left */
+.lp-steps { margin-top: auto; }
+.lp-step {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0; font-size: 14px; color: #555;
+  transition: all .3s;
+}
+.lp-step.active { color: #F3F0EA; font-weight: 600; }
+.lp-step.done { color: var(--green); }
+.lp-step-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #444; flex-shrink: 0; transition: all .3s;
+}
+.lp-step.active .lp-step-dot { background: #F3F0EA; width: 10px; height: 10px; }
+.lp-step.done .lp-step-dot { background: var(--green); }
+.lp-step-line {
+  width: 1px; height: 20px; background: #333;
+  margin-left: 3.5px; margin: -2px 0 -2px 3.5px;
+}
+
+/* ===== RIGHT SIDE FORM ===== */
+.form-section { margin-bottom: 36px; animation: fadeUp .5s ease both; }
+.form-section:nth-child(2) { animation-delay: .05s; }
+.form-section:nth-child(3) { animation-delay: .1s; }
+.form-section:nth-child(4) { animation-delay: .15s; }
+.form-section:nth-child(5) { animation-delay: .2s; }
+.form-section:nth-child(6) { animation-delay: .25s; }
+.form-section:nth-child(7) { animation-delay: .3s; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.f-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.f-label { font-size: 16px; font-weight: 700; color: var(--dark); }
+.f-info {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid var(--border); color: var(--muted);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; cursor: pointer;
+  font-style: italic; font-family: Georgia, serif;
+  position: relative;
+}
+.f-info:hover { border-color: var(--dark); color: var(--dark); }
+.f-tip {
+  display: none; position: absolute; bottom: calc(100% + 8px); left: 50%;
+  transform: translateX(-50%); width: 280px;
+  background: var(--black); color: #E8E6E0; padding: 12px 14px;
+  border-radius: 8px; font-size: 13px; line-height: 1.6;
+  font-style: normal; font-family: -apple-system, sans-serif;
+  font-weight: 400; box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  z-index: 10;
+}
+.f-tip::after { content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:6px solid transparent; border-top-color:var(--black); }
+.f-info:hover .f-tip { display:block; }
+
+.f-hint { font-size: 13px; color: var(--light); margin-bottom: 10px; }
+
+/* Pills */
+.pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill {
+  padding: 11px 22px; border: 1.5px solid var(--border);
+  border-radius: 10px; font-size: 15px; color: var(--mid);
+  cursor: pointer; transition: all .15s; background: var(--card);
+  user-select: none;
+}
+.pill:hover { border-color: var(--dark); color: var(--dark); }
+.pill.on { border-color: var(--black); background: var(--black); color: var(--cream); }
+
+/* Chips */
+.chips { display: flex; flex-direction: column; gap: 8px; }
+.chip {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 18px; border: 1.5px solid var(--border);
+  border-radius: 10px; font-size: 15px; color: var(--mid);
+  cursor: pointer; transition: all .15s; background: var(--card); user-select: none;
+}
+.chip:hover { border-color: var(--dark); }
+.chip.on { border-color: var(--black); color: var(--black); }
+.chk-box {
+  width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: transparent; transition: all .12s; flex-shrink: 0;
+}
+.chip.on .chk-box { border-color: var(--black); background: var(--black); color: var(--cream); }
+
+/* Textarea */
+.ta {
+  width: 100%; padding: 14px 18px; border: 1.5px solid var(--border);
+  border-radius: 10px; font-size: 16px; color: var(--black);
+  background: var(--card); resize: vertical; min-height: 72px;
+  font-family: inherit; line-height: 1.7;
+}
+.ta:focus { outline: none; border-color: var(--black); }
+.ta::placeholder { color: #C0C0B8; }
+
+/* Slider */
+.sl-row { display: flex; align-items: center; gap: 16px; margin-top: 4px; }
+.sl-bound { font-size: 13px; color: var(--light); min-width: 40px; font-family: "SF Mono", monospace; }
+.sl-bound.r { text-align: right; }
+.sl {
+  flex: 1; -webkit-appearance: none; height: 4px;
+  background: var(--border); border-radius: 2px;
+}
+.sl::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 22px; height: 22px;
+  border-radius: 50%; background: var(--black); cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
+}
+.sl-val {
+  font-family: "Noto Serif SC", serif; font-size: 40px; font-weight: 900;
+  text-align: center; margin-top: 6px;
+}
+
+/* Divider */
+.f-divider { height: 1px; background: var(--border); margin: 4px 0 32px; }
+
+/* Primary button */
+.btn-go {
+  padding: 15px 44px; background: var(--black); color: var(--cream);
+  border: none; border-radius: 10px; font-size: 17px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: all .15s;
+  display: block; margin: 48px auto 0;
+}
+.btn-go:hover { background: #333; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+
+.btn-ghost {
+  padding: 13px 30px; background: none; color: var(--mid);
+  border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 15px; cursor: pointer; font-family: inherit;
+}
+.btn-ghost:hover { border-color: var(--dark); color: var(--dark); }
+
+.btn-row { display: flex; gap: 12px; justify-content: center; margin-top: 40px; }
+
+/* ===== PROCESSING (centered) ===== */
+.proc-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%; text-align: center;
+}
+.cassette { width: 160px; height: 100px; position: relative; margin-bottom: 32px; }
+.cas-body {
+  width: 160px; height: 96px; border: 2.5px solid #555;
+  border-radius: 10px; position: absolute; bottom: 0; background: var(--panel2);
+}
+.cas-win {
+  position: absolute; top: 18px; left: 24px; right: 24px; height: 36px;
+  border: 2px solid #555; border-radius: 5px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px; background: #111;
+}
+.cas-reel {
+  width: 22px; height: 22px; border: 2px solid #666; border-radius: 50%;
+  position: relative; animation: spin .4s linear infinite;
+}
+.cas-reel::before { content:''; position:absolute; top:3px; left:50%; width:2px; height:6px; background:#666; transform:translateX(-50%); }
+.cas-reel::after { content:''; position:absolute; top:50%; left:3px; width:6px; height:2px; background:#666; transform:translateY(-50%); }
+.cas-label {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+  font-size: 8px; letter-spacing: 3px; color: #555;
+  font-family: "SF Mono", monospace; text-transform: uppercase;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.proc-steps { display: flex; flex-direction: column; gap: 12px; width: 260px; text-align: left; }
+.p-item { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #555; transition: all .3s; }
+.p-item.on { color: #E8E6E0; font-weight: 600; }
+.p-item.ok { color: var(--green); }
+.p-dot { width: 7px; height: 7px; border-radius: 50%; background: #444; flex-shrink:0; transition: all .3s; }
+.p-item.on .p-dot { background: #E8E6E0; width: 9px; height: 9px; }
+.p-item.ok .p-dot { background: var(--green); }
+
+/* ===== BRIEF (split layout) ===== */
+.brief-left { justify-content: flex-start; padding-top: 56px; gap: 0; }
+.bl-dur-from {
+  font-size: 20px; color: #666; font-family: "SF Mono", monospace;
+  text-decoration: line-through; text-decoration-color: #444;
+}
+.bl-dur-to {
+  font-family: "Noto Serif SC", serif;
+  font-size: 56px; font-weight: 900; color: #F3F0EA;
+  line-height: 1.1; margin: 4px 0 20px;
+}
+.bl-summary {
+  font-size: 15px; line-height: 1.9; color: #888;
+  border-left: 2px solid #444; padding-left: 16px;
+  margin-bottom: 28px;
+}
+.bl-summary strong { color: #DDD; }
+
+.bl-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 28px; }
+.bl-chip {
+  padding: 6px 14px; background: var(--panel2); border: 1px solid #333;
+  border-radius: 8px; font-size: 13px; color: #888;
+}
+.bl-chip.star { border-color: #888; color: #F3F0EA; font-weight: 600; }
+
+.bl-done { display: flex; flex-direction: column; gap: 8px; }
+.bl-done-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 14px; line-height: 1.7; color: #888;
+}
+.bl-done-item .dc { color: var(--green); font-weight: 700; flex-shrink: 0; }
+.bl-you {
+  display: inline-block; padding: 1px 8px; background: rgba(255,255,255,.06);
+  border-radius: 3px; font-size: 11px; color: #AAA; font-weight: 600; margin-left: 4px;
+}
+
+/* Right side: decisions */
+.dec-card {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 28px; margin-bottom: 18px;
+  animation: fadeUp .4s ease both;
+}
+.dec-card:nth-child(2) { animation-delay: .1s; }
+.dec-num { font-family: "SF Mono", monospace; font-size: 12px; color: var(--light); margin-bottom: 10px; }
+.dec-q { font-size: 17px; line-height: 1.75; color: var(--dark); margin-bottom: 16px; }
+.dec-q .hl { background: #FFF3CD; padding: 2px 8px; border-radius: 4px; }
+.dec-q .yt {
+  display: inline-block; padding: 2px 10px; background: var(--bg);
+  border-radius: 4px; font-size: 12px; color: var(--dark); font-weight: 600;
+}
+
+.dec-play {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 20px; background: var(--bg); border-radius: 8px;
+  font-size: 14px; color: var(--dark); cursor: pointer;
+  border: none; font-family: inherit; transition: background .12s;
+  margin-bottom: 16px;
+}
+.dec-play:hover { background: var(--border); }
+
+.dec-opts { display: flex; gap: 8px; flex-wrap: wrap; }
+.dec-opt {
+  padding: 10px 22px; border: 1.5px solid var(--border); border-radius: 8px;
+  font-size: 14px; color: var(--mid); cursor: pointer; background: none;
+  font-family: inherit; transition: all .12s;
+}
+.dec-opt:hover { border-color: var(--dark); color: var(--dark); }
+.dec-opt.on { border-color: var(--black); background: var(--black); color: var(--cream); }
+
+.conf-bar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 18px 22px; background: var(--green-bg);
+  border: 1px solid rgba(61,122,61,.12);
+  border-radius: 10px; margin-top: 24px;
+  animation: fadeUp .4s ease .2s both;
+}
+.conf-num { font-family: "Noto Serif SC", serif; font-size: 40px; font-weight: 900; color: var(--green); }
+.conf-text { font-size: 14px; color: var(--mid); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- ===== SCREEN 1: DEBRIEF ===== -->
+<div class="screen active" id="s1">
+  <div class="split">
+    <div class="split-left">
+      <div class="lp-eyebrow">STEP 01 · 录后复盘</div>
+      <h1 class="lp-title">刚录完，<br>趁热聊几句</h1>
+      <p class="lp-sub">你的复盘会直接变成 AI 的剪辑指令。说什么该留、什么该删，它就照着做。</p>
+
+      <div class="file-card">
+        <span class="fc-icon">🎙</span>
+        <div>
+          <div class="fc-name">EP19 潘潘期</div>
+          <div class="fc-meta">58MB · 1:35:20 · 3人</div>
+        </div>
+        <span class="fc-status">已上传</span>
+      </div>
+
+      <div class="lp-steps">
+        <div class="lp-step active"><span class="lp-step-dot"></span>录后复盘</div>
+        <div class="lp-step-line"></div>
+        <div class="lp-step"><span class="lp-step-dot"></span>AI 处理</div>
+        <div class="lp-step-line"></div>
+        <div class="lp-step"><span class="lp-step-dot"></span>剪辑报告</div>
+      </div>
+    </div>
+
+    <div class="split-right">
+      <div class="form-section">
+        <div class="f-header">
+          <span class="f-label">整体录制感觉</span>
+          <span class="f-info">?<span class="f-tip">帮 AI 判断这期需要多大力度的口癖清理。「磕磕绊绊」会触发更积极的卡顿和重复检测。</span></span>
+        </div>
+        <div class="pills">
+          <span class="pill" onclick="tp(this)">很顺畅</span>
+          <span class="pill on" onclick="tp(this)">还行，正常水平</span>
+          <span class="pill" onclick="tp(this)">磕磕绊绊</span>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="f-header">
+          <span class="f-label">录制中有意外吗？</span>
+          <span class="f-info">?<span class="f-tip">勾选的类型会被 AI 自动识别并移除。比如勾选「录前准备」，AI 会找到正式开场白之前的内容并标记删除。</span></span>
+        </div>
+        <div class="chips">
+          <div class="chip on" onclick="tc(this)"><span class="chk-box">✓</span>录前准备 / 试音占了不少时间</div>
+          <div class="chip on" onclick="tc(this)"><span class="chk-box">✓</span>中途讨论了录制进度 / 下一步聊什么</div>
+          <div class="chip" onclick="tc(this)"><span class="chk-box">✓</span>有设备或网络问题导致的中断</div>
+          <div class="chip" onclick="tc(this)"><span class="chk-box">✓</span>有人中途离开过</div>
+        </div>
+      </div>
+
+      <div class="f-divider"></div>
+
+      <div class="form-section">
+        <div class="f-header">
+          <span class="f-label">内容上印象最深的是什么？</span>
+          <span class="f-info">?<span class="f-tip">你提到的内容会被标记为「保护段落」。即使 AI 认为可以精简，也不会动这些部分。</span></span>
+        </div>
+        <div class="f-hint">随便说说，AI 会优先保留你提到的部分</div>
+        <textarea class="ta" rows="3" placeholder="例如：潘潘讲的物传记特别好，那个可颂比喻一定要留">潘潘讲的物传记特别好，还有那个用可颂比喻酸化纸张的段落，一定要留。</textarea>
+      </div>
+
+      <div class="form-section">
+        <div class="f-header">
+          <span class="f-label">有什么你觉得可以删的？</span>
+          <span class="f-info">?<span class="f-tip">你提到的内容会被优先标记为「建议删除」。你仍然可以在最终审查时恢复。</span></span>
+        </div>
+        <textarea class="ta" rows="2" placeholder="例如：中间聊MBTI那段有点水">中间聊 MBTI 那段有点水。珊瑚词典的例子太多了。</textarea>
+      </div>
+
+      <div class="f-divider"></div>
+
+      <div class="form-section">
+        <div class="f-header">
+          <span class="f-label">目标时长</span>
+          <span class="f-info">?<span class="f-tip">AI 反向计算需要删减多少。如果干货太多删不到目标，会在报告中给出取舍建议，不会强行砍。</span></span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-bound">20</span>
+          <input type="range" class="sl" min="20" max="90" value="50" oninput="document.getElementById('sv').textContent=this.value+' min'">
+          <span class="sl-bound r">90</span>
+        </div>
+        <div class="sl-val" id="sv">50 min</div>
+      </div>
+
+      <div class="form-section">
+        <div class="f-header">
+          <span class="f-label">删减力度</span>
+          <span class="f-info">?<span class="f-tip"><strong>保守</strong>：只删录前准备和明显废话。<br><strong>适中</strong>：删重复叙述和展开过多的段落。<br><strong>激进</strong>：只留核心观点和精彩片段。</span></span>
+        </div>
+        <div class="pills">
+          <span class="pill" onclick="tp(this)">保守 · 只删废话</span>
+          <span class="pill on" onclick="tp(this)">适中</span>
+          <span class="pill" onclick="tp(this)">激进 · 只留精华</span>
+        </div>
+      </div>
+
+      <button class="btn-go" onclick="go('s2')">开始处理 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SCREEN 2: PROCESSING ===== -->
+<div class="screen" id="s2">
+  <div class="split">
+    <div class="split-left" style="justify-content:center;align-items:center;text-align:center">
+      <div class="cassette">
+        <div class="cas-body">
+          <div class="cas-win"><div class="cas-reel"></div><div class="cas-reel"></div></div>
+          <div class="cas-label">processing</div>
+        </div>
+      </div>
+      <h2 class="serif" style="font-size:24px;color:#E8E6E0;margin-bottom:6px">正在处理</h2>
+      <p style="font-size:14px;color:#666">结合你的复盘和节目风格</p>
+    </div>
+    <div class="split-right" style="display:flex;align-items:center;justify-content:center">
+      <div class="proc-steps" id="pl">
+        <div class="p-item ok"><span class="p-dot"></span>音频上传</div>
+        <div class="p-item ok"><span class="p-dot"></span>语音转录</div>
+        <div class="p-item on"><span class="p-dot"></span>说话人识别</div>
+        <div class="p-item"><span class="p-dot"></span>内容分段与分析</div>
+        <div class="p-item"><span class="p-dot"></span>应用复盘指令</div>
+        <div class="p-item"><span class="p-dot"></span>生成剪辑报告</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SCREEN 3: BRIEF ===== -->
+<div class="screen" id="s3">
+  <div class="split">
+    <div class="split-left brief-left">
+      <div class="lp-eyebrow">EDITOR'S BRIEF</div>
+      <h2 class="serif" style="font-size:28px;color:#E8E6E0;margin-bottom:24px">EP19 · 潘潘期</h2>
+
+      <div style="margin-bottom:24px">
+        <div class="bl-dur-from">1:35:20</div>
+        <div class="bl-dur-to">48:12</div>
+      </div>
+
+      <div class="bl-summary">
+        潘潘聊了从人类学到档案管理员的经历。亮点是<strong>物传记</strong>和<strong>可颂比喻</strong>。
+      </div>
+
+      <div style="font-size:11px;font-weight:600;letter-spacing:2px;color:#555;margin-bottom:10px;font-family:'SF Mono',monospace">章节</div>
+      <div class="bl-chips">
+        <span class="bl-chip">开场</span>
+        <span class="bl-chip">珊瑚词典</span>
+        <span class="bl-chip">人类学</span>
+        <span class="bl-chip">灵感盒</span>
+        <span class="bl-chip">档案管理</span>
+        <span class="bl-chip star">★ 物传记</span>
+        <span class="bl-chip">万物有灵</span>
+        <span class="bl-chip">方法论</span>
+      </div>
+
+      <div style="font-size:11px;font-weight:600;letter-spacing:2px;color:#555;margin-bottom:10px;font-family:'SF Mono',monospace">已处理</div>
+      <div class="bl-done">
+        <div class="bl-done-item"><span class="dc">✓</span>移除录前准备（10分钟）</div>
+        <div class="bl-done-item"><span class="dc">✓</span>移除 3 段制作讨论</div>
+        <div class="bl-done-item"><span class="dc">✓</span>精简珊瑚词典举例 <span class="bl-you">你说"太多了"</span></div>
+        <div class="bl-done-item"><span class="dc">✓</span>保留物传记+可颂 <span class="bl-you">你说"一定要留"</span></div>
+        <div class="bl-done-item"><span class="dc">✓</span>精简重复叙述</div>
+      </div>
+    </div>
+
+    <div class="split-right">
+      <div style="font-size:12px;font-weight:600;letter-spacing:3px;color:var(--muted);margin-bottom:18px;font-family:'SF Mono',monospace">需要你确认</div>
+      <p style="font-size:16px;color:var(--mid);margin-bottom:28px;line-height:1.7">AI 根据你的复盘完成了剪辑。还有 2 个地方不太确定，需要你判断一下。</p>
+
+      <div class="dec-card">
+        <div class="dec-num">决策 1 / 2</div>
+        <div class="dec-q">MBTI 那段 <span class="yt">你说"有点水"</span>，但里面有一句挺好的：<span class="hl">"我是 51% 的 J 人做档案管理"</span></div>
+        <button class="dec-play" onclick="this.textContent=this.textContent.includes('▶')?'⏸ 播放中...':'▶ 试听这段'">▶ 试听这段</button>
+        <div class="dec-opts">
+          <button class="dec-opt" onclick="to(this)">全部删除</button>
+          <button class="dec-opt on" onclick="to(this)">只留这一句</button>
+          <button class="dec-opt" onclick="to(this)">全部保留</button>
+        </div>
+      </div>
+
+      <div class="dec-card">
+        <div class="dec-num">决策 2 / 2</div>
+        <div class="dec-q">结尾收束有点突然。要不要保留雨林那句 <span class="hl">"还是很包容、很有生命力的"</span>？</div>
+        <button class="dec-play" onclick="this.textContent=this.textContent.includes('▶')?'⏸ 播放中...':'▶ 试听这段'">▶ 试听这段</button>
+        <div class="dec-opts">
+          <button class="dec-opt" onclick="to(this)">不保留</button>
+          <button class="dec-opt on" onclick="to(this)">保留</button>
+        </div>
+      </div>
+
+      <div class="conf-bar">
+        <span class="conf-num">91%</span>
+        <span class="conf-text">基于你的复盘和节目风格，<br>我对这次结果比较有信心。</span>
+      </div>
+
+      <div class="btn-row" style="margin-bottom:60px">
+        <button class="btn-ghost" onclick="go('s1')">打开完整审查</button>
+        <button class="btn-go" onclick="alert('🎉 已生成\n\n· EP19_粗剪版.mp3 (48:12)\n· 章节时间戳\n· 本期摘要\n· 3 段高光推荐')">确认，下载 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='s2') runProc();
+}
+function runProc(){
+  const items=document.querySelectorAll('#pl .p-item');
+  let i=2;
+  const iv=setInterval(()=>{
+    items[i-1]?.classList.remove('on');items[i-1]?.classList.add('ok');
+    if(i<items.length){items[i].classList.add('on');i++}
+    else{clearInterval(iv);setTimeout(()=>go('s3'),500)}
+  },700);
+}
+function tp(el){el.parentElement.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));el.classList.add('on')}
+function tc(el){el.classList.toggle('on')}
+function to(el){el.parentElement.querySelectorAll('.dec-opt').forEach(o=>o.classList.remove('on'));el.classList.add('on')}
+</script>
+</body>
+</html>

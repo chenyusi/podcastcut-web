@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Podcastcut · 屏 2 上传</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap');
+
+:root {
+  --bg: #ECEEE8;
+  --bg-warm: #E2E5DD;
+  --card: #F4F5F0;
+  --card-2: #EEF0EA;
+  --border: #CFD3C8;
+  --border-soft: #DCDFD4;
+  --black: #1A1A1A;
+  --dark: #2D2D2D;
+  --mid: #4A4A4A;
+  --muted: #757870;
+  --light: #A4A8A0;
+  --cream: #ECEEE8;
+  --sage: #B8C0A0;
+  --sage-deep: #8B9275;
+  --accent: #5C6557;
+  --vibe: #D4A95B;             /* 本期 vibe: 明心 mustard */
+  --shadow-sm: 0 1px 2px rgba(30, 35, 25, .04);
+  --shadow-md: 0 4px 16px rgba(30, 35, 25, .06);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--black);
+  -webkit-font-smoothing: antialiased;
+  font-size: 17px; line-height: 1.65;
+  min-height: 100vh;
+}
+.serif { font-family: "Noto Serif SC", serif; }
+.mono { font-family: "SF Mono", Consolas, monospace; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: .5; }
+}
+
+/* ============ Top sticky bar ============ */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 40px; gap: 32px;
+  background: rgba(236, 238, 232, .9);
+  border-bottom: 1px solid var(--border-soft);
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(10px);
+}
+.topbar-left {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.tb-logo {
+  font-family: "Noto Serif SC", serif; font-weight: 900;
+  font-size: 19px; color: var(--black); letter-spacing: -.5px;
+}
+.tb-logo::after {
+  content: ''; display: inline-block; width: 5px; height: 5px;
+  background: var(--sage-deep); border-radius: 50%;
+  margin-left: 4px; transform: translateY(-3px);
+}
+.tb-ver {
+  font-family: "SF Mono", monospace; font-size: 10px;
+  color: var(--light); letter-spacing: 1.2px;
+  padding: 3px 7px; border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+/* Progress strip */
+.progress {
+  display: flex; align-items: center; gap: 0;
+  flex: 1; justify-content: center;
+  overflow-x: auto;
+}
+.prog-step {
+  display: flex; align-items: center; gap: 9px;
+  flex-shrink: 0; position: relative;
+  font-family: "SF Mono", monospace;
+  font-size: 11px; letter-spacing: 1.5px;
+  color: var(--light); transition: color .15s;
+}
+.prog-step + .prog-step::before {
+  content: ''; display: inline-block;
+  width: 26px; height: 1px;
+  background: var(--border);
+  margin: 0 16px;
+}
+.prog-step.done + .prog-step::before,
+.prog-step.done::before { background: var(--sage-deep); }
+.prog-step .pdot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border);
+}
+.prog-step.done .pdot { background: var(--sage-deep); }
+.prog-step.active .pdot {
+  background: var(--sage-deep);
+  box-shadow: 0 0 0 4px rgba(139, 146, 117, .18);
+}
+.prog-step .pnum {
+  font-weight: 500;
+}
+.prog-step .plabel {
+  font-family: "Noto Serif SC", serif;
+  font-size: 12.5px; font-weight: 500;
+  letter-spacing: 0;
+}
+.prog-step.active { color: var(--black); }
+.prog-step.active .plabel { font-weight: 700; }
+.prog-step.done { color: var(--mid); }
+
+/* Vibe chip */
+.vibe-chip {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 7px 14px 7px 10px;
+  background: var(--card-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  cursor: default; flex-shrink: 0;
+}
+.vibe-chip .vdot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--vibe);
+  box-shadow: 0 0 0 2px rgba(212, 169, 91, .25);
+}
+.vibe-chip .vlbl {
+  font-family: "SF Mono", monospace; font-size: 9.5px;
+  color: var(--light); letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.vibe-chip .vname {
+  font-family: "Noto Serif SC", serif; font-weight: 700;
+  font-size: 14px; color: var(--black); letter-spacing: 1.5px;
+}
+
+/* ============ Main page ============ */
+.page {
+  max-width: 820px; margin: 0 auto;
+  padding: 72px 40px 120px;
+}
+
+.hero {
+  margin-bottom: 56px;
+  animation: rise .6s ease both;
+}
+.eyebrow {
+  font-family: "SF Mono", monospace; font-size: 11.5px;
+  letter-spacing: 2.5px; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 20px;
+}
+.hero-title {
+  font-family: "Noto Serif SC", serif;
+  font-weight: 700; font-size: 56px;
+  line-height: 1.1; color: var(--black);
+  letter-spacing: -1px; margin-bottom: 16px;
+}
+.hero-sub {
+  font-family: "Noto Serif SC", serif;
+  font-style: italic; font-size: 17px;
+  color: var(--muted); line-height: 1.75;
+  max-width: 580px;
+}
+
+/* ============ Drag-drop zone ============ */
+.dropzone {
+  position: relative;
+  background: var(--card);
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 72px 48px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .25s ease;
+  margin-bottom: 56px;
+  animation: rise .6s ease .1s both;
+}
+.dropzone:hover {
+  border-color: var(--sage-deep);
+  background: var(--card-2);
+}
+.dropzone.dragover {
+  border-color: var(--sage-deep);
+  background: var(--card-2);
+  transform: scale(1.005);
+}
+.dropzone input { display: none; }
+
+.dz-circle {
+  width: 78px; height: 78px; margin: 0 auto 28px;
+  border: 1.5px solid var(--mid);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: "Noto Serif SC", serif; font-weight: 300;
+  font-size: 42px; color: var(--mid); line-height: 1;
+  transition: all .25s;
+}
+.dropzone:hover .dz-circle {
+  border-color: var(--sage-deep);
+  color: var(--sage-deep);
+  transform: scale(1.05);
+}
+.dz-title {
+  font-family: "Noto Serif SC", serif;
+  font-weight: 700; font-size: 26px;
+  color: var(--black); margin-bottom: 12px;
+  letter-spacing: -.3px;
+}
+.dz-hint {
+  font-family: "Noto Serif SC", serif;
+  font-style: italic; font-size: 15px;
+  color: var(--muted); margin-bottom: 28px;
+}
+.dz-meta {
+  display: flex; justify-content: center; gap: 28px;
+  font-family: "SF Mono", monospace; font-size: 10.5px;
+  color: var(--light); letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.dz-meta span::before {
+  content: '·'; margin-right: 8px; color: var(--border);
+}
+.dz-meta span:first-child::before { content: ''; margin: 0; }
+
+/* Uploaded file state */
+.dz-uploaded {
+  display: none;
+  background: var(--card-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 28px 32px;
+  margin-bottom: 56px;
+  animation: rise .4s ease both;
+}
+.dz-uploaded.show { display: flex; align-items: center; gap: 24px; }
+
+.fu-icon {
+  width: 56px; height: 56px; flex-shrink: 0;
+  background: var(--bg-warm);
+  border: 1px solid var(--border-soft);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: "SF Mono", monospace; font-size: 11px;
+  font-weight: 600; color: var(--mid); letter-spacing: .5px;
+}
+.fu-info { flex: 1; min-width: 0; }
+.fu-name {
+  font-family: "Noto Serif SC", serif;
+  font-weight: 600; font-size: 18px;
+  color: var(--black); margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fu-meta {
+  font-family: "SF Mono", monospace; font-size: 11.5px;
+  color: var(--muted); letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.fu-action {
+  background: none; border: none; cursor: pointer;
+  font-family: "Noto Serif SC", serif; font-style: italic;
+  font-size: 13.5px; color: var(--muted);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 4px;
+  transition: color .15s;
+}
+.fu-action:hover { color: var(--black); }
+
+/* ============ Form fields ============ */
+.field {
+  margin-bottom: 40px;
+  animation: rise .6s ease both;
+}
+.field:nth-of-type(1) { animation-delay: .15s; }
+.field:nth-of-type(2) { animation-delay: .2s; }
+.field:nth-of-type(3) { animation-delay: .25s; }
+
+.field-num {
+  font-family: "SF Mono", monospace; font-size: 11px;
+  letter-spacing: 2.5px; color: var(--light);
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.field-label {
+  font-family: "Noto Serif SC", serif;
+  font-weight: 700; font-size: 24px;
+  color: var(--black); margin-bottom: 6px;
+  letter-spacing: -.3px;
+}
+.field-hint {
+  font-size: 14.5px; color: var(--muted);
+  line-height: 1.7; margin-bottom: 16px;
+}
+
+.in-text {
+  width: 100%; padding: 14px 18px;
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 8px; font: inherit; font-size: 16px;
+  color: var(--black); transition: border-color .15s;
+}
+.in-text:focus { outline: none; border-color: var(--black); }
+.in-text::placeholder { color: #C0C0B8; }
+
+/* Stepper for speaker count */
+.stepper {
+  display: inline-flex; align-items: stretch;
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 8px; overflow: hidden;
+}
+.stepper button {
+  width: 48px;
+  background: none; border: none; cursor: pointer;
+  font-family: "Noto Serif SC", serif;
+  font-size: 22px; font-weight: 500;
+  color: var(--mid); transition: background .15s;
+}
+.stepper button:hover { background: var(--bg-warm); color: var(--black); }
+.stepper button:disabled {
+  color: var(--border); cursor: not-allowed;
+  background: none;
+}
+.stepper .count {
+  width: 64px; text-align: center;
+  font-family: "Noto Serif SC", serif;
+  font-weight: 700; font-size: 22px;
+  color: var(--black);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  padding: 14px 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.stepper-aside {
+  display: inline-block;
+  margin-left: 16px;
+  font-family: "Noto Serif SC", serif; font-style: italic;
+  font-size: 14px; color: var(--muted);
+  vertical-align: middle;
+}
+
+/* Glossary tag input */
+.tag-input {
+  padding: 10px 12px; background: var(--card);
+  border: 1.5px solid var(--border); border-radius: 8px;
+  display: flex; flex-wrap: wrap; gap: 6px;
+  min-height: 56px; align-items: flex-start;
+}
+.tag-input:focus-within { border-color: var(--black); }
+.tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px 6px 12px; background: var(--bg-warm);
+  border: 1px solid var(--border-soft); border-radius: 6px;
+  font-size: 13px; color: var(--mid);
+  font-family: "Noto Serif SC", serif; font-weight: 500;
+  animation: rise .2s ease both;
+}
+.tag.from-profile {
+  background: var(--card-2);
+  position: relative;
+  padding-left: 28px;
+}
+.tag.from-profile::before {
+  content: '档'; position: absolute;
+  left: 6px; top: 50%; transform: translateY(-50%);
+  font-family: "Noto Serif SC", serif; font-weight: 600;
+  font-size: 9.5px; color: white;
+  background: var(--sage-deep);
+  width: 16px; height: 16px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  letter-spacing: 0;
+}
+.tag .tx {
+  cursor: pointer; color: var(--light); padding: 0 2px;
+  font-family: -apple-system, sans-serif; font-weight: 600;
+  transition: color .15s;
+}
+.tag .tx:hover { color: var(--black); }
+.tag.from-profile .tx { display: none; }
+.tag-add {
+  flex: 1; min-width: 140px;
+  border: none; outline: none; background: none;
+  font: inherit; font-size: 14px; color: var(--black);
+  padding: 6px 4px;
+}
+.tag-add::placeholder { color: #C0C0B8; }
+.tag-helper {
+  margin-top: 10px; font-size: 13px;
+  color: var(--muted); font-style: italic;
+  line-height: 1.65;
+}
+.tag-helper b { color: var(--mid); font-style: normal; font-weight: 600; }
+
+/* ============ CTA row ============ */
+.cta-row {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 64px; padding-top: 36px;
+  border-top: 1px solid var(--border-soft);
+  animation: rise .6s ease .35s both;
+}
+.btn-primary {
+  padding: 16px 36px; background: var(--black);
+  color: var(--cream); border: none; border-radius: 10px;
+  font: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+  letter-spacing: .3px;
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.btn-primary:hover {
+  background: var(--dark); transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.15);
+}
+.btn-primary:disabled {
+  background: var(--border); color: var(--muted);
+  cursor: not-allowed; transform: none; box-shadow: none;
+}
+.btn-ghost {
+  padding: 14px 24px; background: none;
+  color: var(--muted); border: 1.5px solid var(--border);
+  border-radius: 10px; font: inherit; font-size: 14px;
+  cursor: pointer; transition: all .15s;
+}
+.btn-ghost:hover { color: var(--dark); border-color: var(--dark); }
+
+.cta-aside {
+  margin-left: auto;
+  font-family: "Noto Serif SC", serif; font-style: italic;
+  font-size: 13.5px; color: var(--muted);
+}
+
+/* Footer */
+.footer {
+  text-align: center; padding: 40px 0 56px;
+  font-family: "SF Mono", monospace; font-size: 10.5px;
+  color: var(--light); letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+
+<!-- ============ Top sticky bar ============ -->
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="tb-logo">辟客</span>
+    <span class="tb-ver">屏 2 · v0.1</span>
+  </div>
+
+  <nav class="progress">
+    <div class="prog-step active">
+      <span class="pdot"></span>
+      <span class="pnum">01</span>
+      <span class="plabel">上传</span>
+    </div>
+    <div class="prog-step">
+      <span class="pdot"></span>
+      <span class="pnum">02</span>
+      <span class="plabel">复盘</span>
+    </div>
+    <div class="prog-step">
+      <span class="pdot"></span>
+      <span class="pnum">03</span>
+      <span class="plabel">说话人</span>
+    </div>
+    <div class="prog-step">
+      <span class="pdot"></span>
+      <span class="pnum">04</span>
+      <span class="plabel">处理</span>
+    </div>
+    <div class="prog-step">
+      <span class="pdot"></span>
+      <span class="pnum">05</span>
+      <span class="plabel">粗剪</span>
+    </div>
+    <div class="prog-step">
+      <span class="pdot"></span>
+      <span class="pnum">06</span>
+      <span class="plabel">精剪</span>
+    </div>
+    <div class="prog-step">
+      <span class="pdot"></span>
+      <span class="pnum">07</span>
+      <span class="plabel">完成</span>
+    </div>
+  </nav>
+
+  <div class="vibe-chip" title="本期选定的 vibe — 会渗透到后续屏的角落装饰">
+    <span class="vdot"></span>
+    <span class="vlbl">本期</span>
+    <span class="vname">明心</span>
+  </div>
+</header>
+
+<!-- ============ Main page ============ -->
+<main class="page">
+
+  <section class="hero">
+    <div class="eyebrow">EP 21 · 待录</div>
+    <h1 class="hero-title">把这一期<br>交给辟客</h1>
+    <p class="hero-sub">先放音频，再补几个本期专属的设置。<br>录后复盘留到下一步 — 那是给 AI 的核心提示。</p>
+  </section>
+
+  <!-- Drop zone (initial state) -->
+  <label class="dropzone" id="dropzone" for="fileInput">
+    <input type="file" id="fileInput" accept=".mp3,.wav,.m4a" onchange="handleFile(this.files[0])">
+    <div class="dz-circle">+</div>
+    <div class="dz-title">把音频拖到这里</div>
+    <div class="dz-hint">或者点击选择文件</div>
+    <div class="dz-meta">
+      <span>MP3 · WAV · M4A</span>
+      <span>100 – 500 MB</span>
+      <span>建议原始 Zoom 输出</span>
+    </div>
+  </label>
+
+  <!-- Uploaded state (hidden until file dropped) -->
+  <div class="dz-uploaded" id="dzUploaded">
+    <div class="fu-icon">WAV</div>
+    <div class="fu-info">
+      <div class="fu-name" id="fuName">EP21_zoom_raw.wav</div>
+      <div class="fu-meta" id="fuMeta">1 : 24 : 06 · 412 MB · 双声道</div>
+    </div>
+    <button class="fu-action" onclick="resetFile()">换一个文件</button>
+  </div>
+
+  <!-- Field 1: 本期标题 -->
+  <div class="field">
+    <div class="field-num">01 · 标题</div>
+    <div class="field-label">这一期叫什么？</div>
+    <div class="field-hint">用你最后想发布出来的那个名字。后续的章节、文件名都会基于它。</div>
+    <input type="text" class="in-text" placeholder="例如：EP21 数字亲密期" value="EP21 数字亲密期">
+  </div>
+
+  <!-- Field 2: 说话人数量 -->
+  <div class="field">
+    <div class="field-num">02 · 说话人</div>
+    <div class="field-label">这一期有几个人在说话？</div>
+    <div class="field-hint">主播 + 嘉宾，包括只插一两句的人。AI 会用这个数字做声纹聚类。</div>
+    <div class="stepper">
+      <button onclick="stepSpeaker(-1)" id="spkMinus">−</button>
+      <span class="count" id="spkCount">3</span>
+      <button onclick="stepSpeaker(1)" id="spkPlus">+</button>
+    </div>
+    <span class="stepper-aside">阿司 · 雨林 · 本期嘉宾</span>
+  </div>
+
+  <!-- Field 3: 本期专属 glossary -->
+  <div class="field">
+    <div class="field-num">03 · 本期词汇</div>
+    <div class="field-label">本期会出现的人名、品牌、专有词</div>
+    <div class="field-hint">嘉宾名、本期讨论的 app 或概念。会跟档案里的 5 个常驻词合并 — 转录时用来纠正。</div>
+    <div class="tag-input" id="glossaryInput">
+      <span class="tag from-profile">辟客<span class="tx">×</span></span>
+      <span class="tag from-profile">阿司<span class="tx">×</span></span>
+      <span class="tag from-profile">雨林<span class="tx">×</span></span>
+      <span class="tag from-profile">珊瑚词典<span class="tx">×</span></span>
+      <span class="tag from-profile">小宇宙<span class="tx">×</span></span>
+      <span class="tag">TT<span class="tx" onclick="rmTag(this)">×</span></span>
+      <span class="tag">交友软件<span class="tx" onclick="rmTag(this)">×</span></span>
+      <input type="text" class="tag-add" placeholder="本期嘉宾或新词，输完按回车" onkeydown="addTag(event)">
+    </div>
+    <div class="tag-helper">
+      带 <b>档</b> 标的词来自档案，本期不能删（档案里去掉才会消失）。<br>
+      其他词只在本期生效。
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-row">
+    <button class="btn-primary" onclick="goToDebrief()">
+      <span>上传并继续</span>
+      <span>→</span>
+    </button>
+    <button class="btn-ghost" onclick="history.back()">先回主页</button>
+    <span class="cta-aside">下一步：录后复盘 · 趁热告诉 AI 该保留 / 删除什么</span>
+  </div>
+
+</main>
+
+<div class="footer">PODCASTCUT · V0.1 · MADE FOR 辟客</div>
+
+<script>
+const dz = document.getElementById('dropzone');
+const dzUp = document.getElementById('dzUploaded');
+const fuName = document.getElementById('fuName');
+const fuMeta = document.getElementById('fuMeta');
+
+['dragenter', 'dragover'].forEach(evt => {
+  dz.addEventListener(evt, e => {
+    e.preventDefault(); e.stopPropagation();
+    dz.classList.add('dragover');
+  });
+});
+['dragleave', 'drop'].forEach(evt => {
+  dz.addEventListener(evt, e => {
+    e.preventDefault(); e.stopPropagation();
+    dz.classList.remove('dragover');
+  });
+});
+dz.addEventListener('drop', e => {
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+
+function handleFile(file) {
+  if (!file) return;
+  const sizeMB = (file.size / 1024 / 1024).toFixed(0);
+  fuName.textContent = file.name;
+  fuMeta.textContent = `等待获取时长 · ${sizeMB} MB · ${file.type || '未知格式'}`;
+  dz.style.display = 'none';
+  dzUp.classList.add('show');
+}
+
+function resetFile() {
+  dzUp.classList.remove('show');
+  dz.style.display = 'block';
+  document.getElementById('fileInput').value = '';
+}
+
+let spkCount = 3;
+function stepSpeaker(d) {
+  spkCount = Math.min(8, Math.max(2, spkCount + d));
+  document.getElementById('spkCount').textContent = spkCount;
+  document.getElementById('spkMinus').disabled = spkCount <= 2;
+  document.getElementById('spkPlus').disabled = spkCount >= 8;
+}
+
+function addTag(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const v = e.target.value.trim();
+  if (!v) return;
+  const tag = document.createElement('span');
+  tag.className = 'tag';
+  tag.innerHTML = `${v}<span class="tx" onclick="rmTag(this)">×</span>`;
+  e.target.parentNode.insertBefore(tag, e.target);
+  e.target.value = '';
+}
+function rmTag(el) { el.parentNode.remove(); }
+
+function goToDebrief() {
+  window.location.href = 'prototype_屏3_复盘.html';
+}
+</script>
+</body>
+</html>
