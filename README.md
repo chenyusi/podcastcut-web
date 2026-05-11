@@ -25,19 +25,24 @@ pipeline 跑，按需调 Anthropic API。
 
 ```
 podcastcut-web/
-├── design/                          ← 全部设计资产，源头在这里
-│   ├── MVP规格.md                   ← 8 屏 user flow + 数据契约（v2，2026-05-09 锁）
-│   ├── prototype_主流程_v0.1.html  ← 屏 1→2→3 串联原型（含 topbar / 进度条 / vibe selector）
-│   ├── prototype_屏1_节目档案.html ← 屏 1 单屏（早期版本，已并入主流程）
-│   ├── prototype_屏2_上传.html     ← 屏 2 单屏（早期版本，已并入主流程）
-│   ├── prototype_屏3_复盘.html     ← 屏 3 单屏（早期版本，已并入主流程）
-│   ├── prototype_复盘驱动.html     ← 早期探索（屏 2 磁带动画来源）
-│   ├── prototype_wow.html          ← 早期探索（视觉语言起点）
-│   ├── userflow_v2_复盘驱动.md     ← 用户流第 2 版（复盘驱动模型）
-│   └── userflow草稿_碰头用.md      ← 用户流早期草稿
+├── design/
+│   ├── MVP规格.md                          ← 8 屏 user flow + 数据契约（v2，2026-05-09 锁）
+│   ├── prototype_主流程_当前最新.html     ← ★ 当前 source of truth（屏 1→2→3 串联）
+│   ├── userflow草稿_碰头用.md             ← 用户流早期草稿（仍有效）
+│   └── past iterations/                    ← 历史版本归档，仅作参考，勿据此实现
+│       ├── prototype_屏1_节目档案.html    ← 早期单屏，已并入主流程
+│       ├── prototype_屏2_上传.html         ← 同上
+│       ├── prototype_屏3_复盘.html         ← 同上
+│       ├── prototype_复盘驱动.html         ← 早期探索（屏 2 磁带动画来源）
+│       ├── userflow_v2_复盘驱动.md         ← 用户流第 2 版（已被 MVP 规格 superseded）
+│       └── review_roughcut.html            ← skill 仓库 剪播客/templates/ 的屏 6 粗剪审核参考画面
 ├── README.md
-└── .gitignore                       ← 已预置 Next.js / node / 音频文件忽略规则
+└── .gitignore                              ← 已预置 Next.js / node / 音频文件忽略规则
 ```
+
+**版本命名约定**：当前主流程 prototype 始终叫 `prototype_主流程_当前最新.html`。
+出 v0.2 时，把现有那份重命名为 `prototype_主流程_v0.1.html` 移到 `past iterations/`，
+新版本继续叫"当前最新"，这样响歌歌的 bookmark / 引用始终指向最新版。
 
 未来响歌歌加入 Next.js 源码时，平级新建 `app/` `lib/` `components/` `public/` 即可。
 
@@ -100,6 +105,6 @@ podcastcut-web/
 ## 给响歌歌的 onboarding
 
 1. 先读 `design/MVP规格.md`（v2）— 数据契约 + 每屏输入输出 JSON
-2. 浏览器打开 `design/prototype_主流程_v0.1.html` — 屏 1→2→3 实际能点
-3. 老的单屏 prototype（屏 1/2/3 独立 HTML）作为对照参考即可，**主流程** HTML 才是当前 source of truth
+2. 浏览器打开 `design/prototype_主流程_当前最新.html` — 屏 1→2→3 实际能点
+3. `design/past iterations/` 里的文件**只看不实现**，那是历史归档
 4. skill 仓库 `podcastcut-skills/剪播客/SKILL.md` 是粗剪逻辑的方法论来源，要抽出来变成后端 system prompt
